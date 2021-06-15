@@ -1,0 +1,21 @@
+name: Publish Q-Sys Plugin
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  pack-and-push-job:
+    runs-on: ubuntu-latest
+    name: Package and Publish plugin to Q-Sys Community Server
+    steps:
+      - name: Checkout Files
+        uses: actions/checkout@v1
+
+      - name: Pack and Push
+        uses: soloworks/publish-q-sys-plugin@v1
+        with:
+          nuget-host: "https://q-sys.soloworks.co.uk/q-sys-community-plugins/"
+          api-key: ${{ secrets.NUGET_APIKEY }}
+          md-to-desc: "description.md"
