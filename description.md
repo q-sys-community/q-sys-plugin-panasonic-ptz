@@ -1,4 +1,4 @@
-# Lightware Matrix
+# Panasonic PTZ Camera
 
 QSC Q-Sys plugin for Panasonic PTZ Cameras (UE150 Series, HE130 Series, and HE70 Series)
 

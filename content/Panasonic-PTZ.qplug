@@ -20,8 +20,6 @@ local Colors = {
 
 port = 80
 preset_count = 100
-pt_speed = 25
-zoom_speed = 25
 
 function GetColor(props)
 	return Colors.panasonic_blue
@@ -85,18 +83,18 @@ function GetControls(props)
 		{
 			Name = "CAM_Pan-Speed",
 			ControlType = "Knob",
-			ControlUnit = "Integer",
+			ControlUnit = "Percent",
 			Min = 1,
-			Max = 49,
+			Max = 100,
 			UserPin = true,
 			PinStyle = "Both"
 		},
 		{
 			Name = "CAM_Zoom-Speed",
 			ControlType = "Knob",
-			ControlUnit = "Integer",
+			ControlUnit = "Percent",
 			Min = 1,
-			Max = 49,
+			Max = 100,
 			UserPin = true,
 			PinStyle = "Both"
 		},
@@ -148,7 +146,7 @@ function GetControls(props)
 			ButtonType = "Momentary",
 			UserPin = true,
 			PinStyle = "Input",
-			Count = 128
+			Count = 100
 		},
 		{
 			Name = "CAM_Memory-Recall",
@@ -156,7 +154,7 @@ function GetControls(props)
 			ButtonType = "Momentary",
 			UserPin = true,
 			PinStyle = "Input",
-			Count = 128
+			Count = 100
 		}
 	}
 	return ctls
@@ -176,14 +174,14 @@ function GetControlLayout(props)
 	preset_count = props["Preset Count"].Value
 
 	local layout = {}
-	local row_size = 8
+	local row_size = 6
 
 	local btn_size = {48, 24}
 	local title_size = {row_size * btn_size[1], btn_size[2]}
 	local txt_size = {2 * btn_size[1], btn_size[2]}
 	local status_groupbox_size = {title_size[1], 4 * btn_size[2]}
 	local ptz_groupbox_position = {0, title_size[2] + status_groupbox_size[2] + (0.5 * btn_size[2])}
-	local ptz_groupbox_size = {8 * btn_size[1], 5 * btn_size[2]}
+	local ptz_groupbox_size = {row_size * btn_size[1], 5 * btn_size[2]}
 	local presets_groupbox_position = {0, ptz_groupbox_position[2] + ptz_groupbox_size[2] + (0.5 * btn_size[2])}
 	local presets_groupbox_size = {
 		row_size * btn_size[1],
@@ -393,14 +391,14 @@ function GetControlLayout(props)
 		Size = btn_size
 	}
 	layout["CAM_Pan-Speed"] = {
-		PrettyName = "PTZ~Pan/Tilt Speed",
+		PrettyName = "PTZ Speed~Pan/Tilt",
 		Style = "Text Field",
 		Margin = 2,
 		Position = {ptz_groupbox_position[1] + txt_size[1] + 0 * btn_size[1], ptz_groupbox_position[2] + (3 * btn_size[2])},
 		Size = {2 * btn_size[1], btn_size[2]}
 	}
 	layout["CAM_Zoom-Speed"] = {
-		PrettyName = "PTZ~Pan/Tilt Speed",
+		PrettyName = "PTZ Speed~Zoom",
 		Style = "Text Field",
 		Margin = 2,
 		Position = {ptz_groupbox_position[1] + txt_size[1] + 0 * btn_size[1], ptz_groupbox_position[2] + (4 * btn_size[2])},
@@ -473,7 +471,6 @@ if Controls then
 		if code == 200 then
 			print("200 OK")
 			Controls["Online"].Boolean = true
-			print(string.sub(d, 0, 3))
 			if string.sub(d, 0, 3) == "qSV" then
 				Controls["FirmwareVersion"].String = string.sub(d, 5, -1)
 			end
@@ -500,19 +497,11 @@ if Controls then
 	end
 
 	function goPanTilt(dir, speed)
-		if dir == "" then
-			fnSend("PTS5050") -- Stop
-		else
-			fnSend(dir .. speed) -- Move
-		end
+		fnSend(dir .. speed)
 	end
 
-	function goZoom(dir, speed)
-		if dir == "" then
-			fnSend("Z50") -- Stop
-		else
-			fnSend(dir .. speed) -- Move
-		end
+	function goZoom(speed)
+		fnSend("Z" .. speed)
 	end
 
 	for k, v in pairs(Controls) do
@@ -529,19 +518,19 @@ if Controls then
 						goPanTilt("P", string.format("%02d", pt_speed + 50)) -- Right
 					end
 				else
-					goPanTilt("") -- Stop
+					fnSend("PTS5050") -- Stop
 				end
 			end
 		elseif k:sub(1, #"CAM_Zoom-") == "CAM_Zoom-" then
 			v.EventHandler = function(changedControl)
 				if changedControl.Boolean == true then
 					if k:sub(-2, -1) == "Z+" then
-						goZoom("Z", string.format("%02d", zoom_speed + 50)) -- In
+						goZoom(string.format("%02d", zoom_speed + 50)) -- In
 					elseif k:sub(-2, -1) == "Z-" then
-						goZoom("Z", string.format("%02d", (zoom_speed - 50) * -1)) -- Out
+						goZoom(string.format("%02d", (zoom_speed - 50) * -1)) -- Out
 					end
 				else
-					goZoom("") -- Stop
+					goZoom("50") -- Stop
 				end
 			end
 		end
@@ -555,17 +544,20 @@ if Controls then
 		end
 	end
 	Controls["CAM_Pan-Speed"].EventHandler = function()
-		pt_speed = string.format("%02d", Controls["CAM_Pan-Speed"].Value)
+		pt_speed = (string.format("%02d", math.floor((Controls["CAM_Pan-Speed"].Value / 2.05) + 0.6)))
 		print(pt_speed)
 	end
+	
 	Controls["CAM_Zoom-Speed"].EventHandler = function()
-		zoom_speed = string.format("%02d", Controls["CAM_Zoom-Speed"].Value)
+		zoom_speed = (string.format("%02d", math.floor((Controls["CAM_Zoom-Speed"].Value / 2.05) + 0.6)))
 		print(zoom_speed)
 	end
 	-- Startup
 	Controls["ConnectionState"].String = Properties["IP Address"].Value
-	Controls["CAM_Pan-Speed"].Value = pt_speed
-	Controls["CAM_Zoom-Speed"].Value = zoom_speed
+	Controls["CAM_Pan-Speed"].Value = (string.format("%02d", 50))
+	Controls["CAM_Zoom-Speed"].Value = (string.format("%02d", 50))
+	pt_speed = (string.format("%02d", math.floor((Controls["CAM_Pan-Speed"].Value / 2.05) + 0.6)))
+	zoom_speed = (string.format("%02d", math.floor((Controls["CAM_Zoom-Speed"].Value / 2.05) + 0.6)))
 	fnPoll()
 	fnInitPoll()
 end
