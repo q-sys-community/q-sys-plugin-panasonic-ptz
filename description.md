@@ -4,7 +4,7 @@ QSC Q-Sys plugin for Panasonic PTZ Cameras (UE150 Series, HE130 Series, and HE70
 
 Tested against: AW-UN70
 
-Current Features:
+## Features
 
 - Read firmware version
 - Pan/Tilt/Zoom
